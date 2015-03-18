@@ -36,6 +36,10 @@ public class Launcher {
 
     private static final String OPTION_NIC = "nic";
 
+    private static final String OPTION_USERNAME = "user";
+
+    private static final String OPTION_PASSWORD = "pw";
+
     /**
      * Starts the proxy from the command line.
      * 
@@ -53,7 +57,9 @@ public class Launcher {
         options.addOption(null, OPTION_HELP, false,
                 "Display command line help.");
         options.addOption(null, OPTION_MITM, false, "Run as man in the middle.");
-        
+        options.addOption(null, OPTION_USERNAME, false, "Username for authentication");
+        options.addOption(null, OPTION_PASSWORD, false, "Password for authentication");
+
         final CommandLineParser parser = new PosixParser();
         final CommandLine cmd;
         try {
@@ -118,6 +124,15 @@ public class Launcher {
             }
         }
 
+        if (cmd.hasOption(OPTION_USERNAME) && cmd.hasOption(OPTION_PASSWORD)) {
+
+            String username = cmd.getOptionValue(OPTION_USERNAME);
+            String password = cmd.getOptionValue(OPTION_PASSWORD);
+
+            ProxyAuthenticator auth = new Authenticator(username, password);
+            bootstrap.withProxyAuthenticator(auth);
+        }
+
         System.out.println("About to start...");
         bootstrap.start();
     }
@@ -138,6 +153,31 @@ public class Launcher {
         if (log4jConfigurationFile.exists()) {
             DOMConfigurator.configureAndWatch(
                     log4jConfigurationFile.getAbsolutePath(), 15);
+        }
+    }
+
+    public static class Authenticator implements ProxyAuthenticator {
+
+        private String username;
+        private String password;
+
+        public Authenticator(String username, String password) {
+            this.username = username;
+            this.password = password;
+        }
+
+        @Override
+        public boolean authenticate(String username, String password) {
+
+            if (this.username != null && !this.username.equalsIgnoreCase(username)) {
+                return false;
+            }
+
+            if (this.password != null && !this.password.equals(password)) {
+                return false;
+            }
+
+            return true;
         }
     }
 }
